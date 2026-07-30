@@ -17,7 +17,6 @@ reports.
 
 | Notebook | What it covers |
 |---|---|
-| `pipeline_accidents.ipynb` | Original exploration — operators, cause categories, liquid types. |
 | `01_exploratory_data_analysis.ipynb` | Missing data, distributions, time trends, correlation between severity columns. |
 | `02_statistical_testing.ipynb` | Correlation, Welch's t-test, ANOVA + Tukey HSD, chi-square, and a correlation-vs-causation discussion. |
 | `03_feature_engineering_selection.ipynb` | New features (time, shutdown duration, cost/volume ratios, region), narrowed down with mutual information, chi-square, and Random Forest importance. Saves `pipeline_accidents_features.csv`. |
