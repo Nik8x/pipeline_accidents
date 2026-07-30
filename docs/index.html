@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pipeline Accidents — Data Science Report</title>
+<meta name="description" content="EDA, statistical testing, feature engineering, model selection, and clustering on the US hazardous liquid pipeline accidents dataset (2010-2017).">
+<style>
+  :root {
+    color-scheme: light;
+    --surface-0:      #ffffff;
+    --surface-1:      #fcfcfb;
+    --surface-2:      #f2f1ed;
+    --border:         #e3e2dc;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted:     #7a7972;
+    --accent:         #2a78d6;
+    --accent-ink:     #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      color-scheme: dark;
+      --surface-0:      #141413;
+      --surface-1:      #1a1a19;
+      --surface-2:      #232320;
+      --border:         #34332e;
+      --text-primary:   #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted:     #8f8e85;
+      --accent:         #3987e5;
+      --accent-ink:     #ffffff;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --surface-0:      #141413;
+    --surface-1:      #1a1a19;
+    --surface-2:      #232320;
+    --border:         #34332e;
+    --text-primary:   #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted:     #8f8e85;
+    --accent:         #3987e5;
+    --accent-ink:     #ffffff;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--surface-0);
+    color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.55;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 24px; }
+
+  header.hero {
+    background: var(--surface-1);
+    border-bottom: 1px solid var(--border);
+    padding: 64px 0 40px;
+  }
+  .eyebrow {
+    color: var(--accent);
+    font-weight: 600;
+    font-size: 0.8rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin: 0 0 12px;
+  }
+  h1 {
+    font-size: clamp(1.8rem, 4vw, 2.6rem);
+    margin: 0 0 14px;
+    letter-spacing: -0.01em;
+  }
+  .lede {
+    color: var(--text-secondary);
+    font-size: 1.05rem;
+    max-width: 62ch;
+    margin: 0 0 8px;
+  }
+  .repo-link {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+  }
+  .repo-link a { color: inherit; }
+
+  section { padding: 40px 0; }
+  section + section { border-top: 1px solid var(--border); }
+  h2 {
+    font-size: 1.3rem;
+    margin: 0 0 20px;
+  }
+
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 14px;
+  }
+  .stat-tile {
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 16px;
+  }
+  .stat-value {
+    font-size: 1.6rem;
+    font-weight: 650;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-primary);
+  }
+  .stat-label {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    margin-top: 2px;
+  }
+
+  .nav-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 16px;
+  }
+  .nb-card {
+    display: block;
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 20px 18px;
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 0.15s ease, transform 0.15s ease;
+  }
+  .nb-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-1px);
+  }
+  .nb-num {
+    display: inline-block;
+    color: var(--accent);
+    font-weight: 700;
+    font-size: 0.8rem;
+    letter-spacing: 0.04em;
+    margin-bottom: 8px;
+  }
+  .nb-card h3 {
+    margin: 0 0 6px;
+    font-size: 1.05rem;
+  }
+  .nb-card p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.92rem;
+  }
+
+  .findings li { margin-bottom: 10px; }
+  .findings strong { color: var(--text-primary); }
+
+  code {
+    background: var(--surface-2);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 0.9em;
+  }
+
+  footer {
+    padding: 28px 0 48px;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+  }
+  footer a { color: var(--text-muted); }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <p class="eyebrow">Data Science Project — PHMSA Hazardous Liquid Pipeline Accidents</p>
+    <h1>Pipeline Accidents: EDA, Statistics, Feature Engineering, Modeling &amp; Clustering</h1>
+    <p class="lede">
+      A full walkthrough of 2,795 reported US pipeline accidents (2010-2017) —
+      exploratory analysis, hypothesis testing, a supervised model that predicts
+      accident cause, and an unsupervised look at how accidents cluster by
+      severity.
+    </p>
+    <p class="repo-link">
+      Source notebooks and data: <a href="https://github.com/Nik8x/pipeline_accidents">github.com/Nik8x/pipeline_accidents</a>
+    </p>
+  </div>
+</header>
+
+<section>
+  <div class="wrap">
+    <h2>The dataset at a glance</h2>
+    <div class="stat-grid">
+      <div class="stat-tile"><div class="stat-value">2,795</div><div class="stat-label">Reported accidents</div></div>
+      <div class="stat-tile"><div class="stat-value">2010–2017</div><div class="stat-label">Years covered</div></div>
+      <div class="stat-tile"><div class="stat-value">46</div><div class="stat-label">States &amp; territories</div></div>
+      <div class="stat-tile"><div class="stat-value">7</div><div class="stat-label">Cause categories</div></div>
+      <div class="stat-tile"><div class="stat-value">48</div><div class="stat-label">Raw columns</div></div>
+      <div class="stat-tile"><div class="stat-value">$834K</div><div class="stat-label">Mean cost / incident</div></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Notebooks</h2>
+    <div class="nav-grid">
+      <a class="nb-card" href="pipeline_accidents.html">
+        <span class="nb-num">00 · ORIGINAL</span>
+        <h3>Initial Exploration</h3>
+        <p>The original notebook this project started from — first look at operators, cause categories, and liquid types.</p>
+      </a>
+      <a class="nb-card" href="01_exploratory_data_analysis.html">
+        <span class="nb-num">01 · EDA</span>
+        <h3>Exploratory Data Analysis</h3>
+        <p>Missing data, distributions, time trends, and how the severity columns (cost, volume, injuries) correlate with each other.</p>
+      </a>
+      <a class="nb-card" href="02_statistical_testing.html">
+        <span class="nb-num">02 · STATISTICS</span>
+        <h3>Correlation, t-tests, ANOVA &amp; Chi-square</h3>
+        <p>Formal hypothesis tests behind the EDA observations, with p-values and an explicit correlation-vs-causation discussion.</p>
+      </a>
+      <a class="nb-card" href="03_feature_engineering_selection.html">
+        <span class="nb-num">03 · FEATURES</span>
+        <h3>Feature Engineering &amp; Selection</h3>
+        <p>New features from timestamps, shutdown duration, and cost/volume ratios, then narrowed down with mutual information, chi-square and model-based importance.</p>
+      </a>
+      <a class="nb-card" href="04_model_training_evaluation.html">
+        <span class="nb-num">04 · MODELING</span>
+        <h3>Model Training &amp; Evaluation</h3>
+        <p>Train/validation/test split, comparing Logistic Regression, Random Forest and Gradient Boosting to predict accident cause, with tuning and a held-out test evaluation.</p>
+      </a>
+      <a class="nb-card" href="05_clustering.html">
+        <span class="nb-num">05 · CLUSTERING</span>
+        <h3>Unsupervised Clustering</h3>
+        <p>KMeans (elbow + silhouette) and DBSCAN grouping accidents by severity profile — surfacing a small, high-risk cluster without ever using an injury label.</p>
+      </a>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Key findings</h2>
+    <ul class="findings">
+      <li><strong>Cost and spill volume don't move together year to year</strong> — 2010 had the highest total reported cost despite below-average net loss, while 2013 had the largest total spill volume with fairly ordinary costs. Yearly totals are driven by a handful of outlier incidents, not a steady trend.</li>
+      <li><strong>Underground pipe costs significantly more to fix</strong> — a Welch's t-test on log-cost between underground and aboveground accidents is significant at p &lt; 0.001, consistent with the expense of excavation and soil/groundwater remediation.</li>
+      <li><strong>Cause category is associated with both cost and pipeline type</strong> — ANOVA and a chi-square test of independence are both significant (p ≈ 0), though the r ≈ 0.06 raw correlation between spill size and cost is a reminder that significance doesn't imply a strong or causal relationship.</li>
+      <li><strong>Predicting accident cause is genuinely hard</strong> — a tuned Random Forest reaches macro-F1 ≈ 0.31 against a ≈ 0.10 majority-class baseline, roughly a 3x improvement, but the features available (cost, volume, location) describe accident <em>consequences</em>, not root-cause drivers like pipe age or inspection history.</li>
+      <li><strong>Clustering finds a high-risk segment without ever seeing an injury label</strong> — KMeans on severity features alone isolates an 8-incident cluster with a 75% injury / 100% fatality rate. DBSCAN independently flags overlapping incidents as density "noise," with injury and fatality rates about 29x the dataset average among the flagged points.</li>
+    </ul>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    Data: PHMSA hazardous liquid pipeline accident reports (<code>pipeline-accidents.csv</code>), bundled in this repository.
+    Report generated from the project's Jupyter notebooks with <code>nbconvert</code>.
+  </div>
+</footer>
+
+</body>
+</html>
